@@ -12,7 +12,7 @@ STATUTES = [
        start=r"^1\. The objective o ?f this ?Act", last=141,
        url="https://sabilaw.org/wp-content/uploads/2020/11/Police-Act-2020-1.pdf"),
   dict(key="acja", file="acja-policinglaw.raw.txt", short="ACJA 2015", name="Administration of Criminal Justice Act 2015", year=2015, jurisdiction="Federal (FCT and federal courts)",
-       start=r"^\s*1\.\s*$", last=495, start_after=r"ADMINISTRATION OF CRIMINAL JUSTICE ACT|ENACTED",
+       start=r"^\s*1\.\s*$", last=495, bare=True, start_after=r"ADMINISTRATION OF CRIMINAL JUSTICE ACT|ENACTED",
        url="https://www.policinglaw.info/assets/downloads/2015_Administration_of_Criminal_Justice_Act.pdf"),
   dict(key="ndpa", file="ndpa-dataguidance.raw.txt", short="NDPA 2023", name="Nigeria Data Protection Act 2023", year=2023, jurisdiction="Federal",
        start=r"^1\. The objectives of this Act are to", last=66,
@@ -20,7 +20,7 @@ STATUTES = [
   dict(key="labour-act", file="labour-act.raw.txt", short="Labour Act", name="Labour Act (Cap. L1, LFN 2004)", year=2004, jurisdiction="Federal",
        start=r"^1\. Manner of payment", last=91,
        url="http://lawsofnigeria.placng.org/laws/L1.pdf"),
-  dict(key="tenancy-lagos", file="tenancy-lagos-2011.raw.txt", short="Lagos Tenancy Law 2011", name="Tenancy Law of Lagos State 2011", year=2011, jurisdiction="Lagos State",
+  dict(key="tenancy-lagos", file="tenancy-lagos-2011.txt", short="Lagos Tenancy Law 2011", name="Tenancy Law of Lagos State 2011", year=2011, jurisdiction="Lagos State",
        start=r"^\s*1\.-\(1\) This Law shall apply", last=47,
        url="https://sabilaw.org/wp-content/uploads/2021/08/Lagos-State-Tenancy-Law-2011.pdf"),
 ]
@@ -70,6 +70,7 @@ def arrangement_titles(lines, body_start):
 LAYOUT_TITLE_RE = re.compile(r"(?<![\d(])(\d{1,3})\.\s{1,6}([A-Z][A-Za-z ,'’\-]{3,70}?)(?=\s{3,}\d{1,3}\.|\s*$|\s{3,})")
 def layout_titles(st):
     path = os.path.join(SRC, st["file"].replace(".raw.txt", ".txt"))
+    if not st["file"].endswith(".raw.txt"): path = os.path.join(SRC, st["file"])
     if not os.path.exists(path): return {}
     titles = {}; seen_body = 0
     for l in open(path, encoding="utf-8", errors="ignore"):
@@ -89,9 +90,14 @@ def parse(st):
     bs = find_body_start(lines, st["start"], st.get("start_after"))
     titles = layout_titles(st); titles.update({k:v for k,v in arrangement_titles(lines, bs).items() if k not in titles})
     secs = []; cur = None; expected = 1
-    for l in lines[bs:]:
+    body = lines[bs:]
+    def next_nonempty(i):
+        for j in range(i+1, min(i+6, len(body))):
+            if body[j].strip(): return body[j].strip()
+        return ""
+    for i, l in enumerate(body):
         m = SEC_RE.match(l)
-        if m:
+        if m and (m.group(2) or re.match(r"^\(1\)|^[A-Z]", next_nonempty(i))):
             n = int(m.group(1))
             if expected <= n <= expected + 2:
                 if cur: secs.append(cur)
@@ -107,7 +113,8 @@ def parse(st):
     for s in secs:
         text = " ".join(s["lines"])
         text = re.sub(r"\s+", " ", text)
-        text = re.sub(r"\s(\((?:\d{1,2}|[a-z]{1,3}|[ivx]{1,4})\))\s", r"\n\1 ", text)
+        text = re.sub(r"(?<=[.;:\-\u2013\u2014])\s+(\((?:\d{1,2}|[a-z]{1,3}|[ivx]{1,4})\))\s", r"\n\1 ", text)
+        text = re.sub(r"^\s*(\(1\))\s", r"\1 ", text)
         for a,b in OCR_FIXES: text = re.sub(a, b, text)
         text = text.strip()
         if len(text) < 20: continue

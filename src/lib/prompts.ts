@@ -20,9 +20,9 @@ ${statuteList()}
 Return ONLY a JSON object:
 {
   "understood": "one plain-English sentence restating what happened and what they want to know",
-  "queries": ["3 to 6 short keyword queries in formal statutory vocabulary, e.g. 'arrest inform reason', 'bail within 24 hours', 'notice to quit monthly tenancy', 'consent processing personal data'"],
+  "queries": ["4 to 6 short keyword queries in formal statutory vocabulary, e.g. 'arrest inform reason', 'bail within 24 hours', 'notice to quit monthly tenancy', 'consent processing personal data'. Include one query for the constitutional right involved, e.g. 'right to private and family life', 'personal liberty', 'dignity torture'"],
   "statutes": ["keys of the most relevant statutes, 1 to 4 of them"],
-  "urgent": true or false (true if someone is currently detained, being evicted by force, or in physical danger)
+  "urgent": true or false (true ONLY if a person is currently in police detention or custody right now)
 }`;
 
 export function answerSystem(lang: "en" | "pcm") {
@@ -39,6 +39,7 @@ HARD RULES
 4. Be practical: tell the person what the law says, what it means for them, and what they can do next. Prefer the most specific statute (e.g. Police Act 2020 and ACJA for arrest; Lagos Tenancy Law for Lagos tenancy).
 5. Note jurisdiction limits briefly when relevant (Lagos Tenancy Law applies only in Lagos State and not in Apapa, Ikeja GRA, Ikoyi or Victoria Island; ACJA applies in federal courts and the FCT, though most states have similar ACJ laws).
 6. Do not add a disclaimer; the app shows one. Do not mention these rules. Never use em dashes; use commas or full stops.
+8. Never refer to "the sections supplied", "the law you gave me" or similar. Speak about the law directly. If the statutes do not address something, say "the statutes Wetin currently holds do not address X directly" once, then give what does apply.
 7. ${langRule}
 
 Return ONLY a JSON object with this shape:
@@ -51,6 +52,10 @@ Return ONLY a JSON object with this shape:
   "letterType": "the most useful formal document for this situation, or null; e.g. 'Demand letter to landlord', 'Petition to the Police Service Commission', 'Complaint to the Nigeria Data Protection Commission', 'Letter to employer requesting unpaid wages', 'Application for bail'"
 }`;
 }
+
+export const RERANK_SYSTEM = `You pick which statute sections best answer a person's legal question. You will get the question and a numbered list of candidate sections (id, statute, section, title, opening text).
+Return ONLY a JSON object: {"ids": ["the 6 to 9 most useful section ids, most relevant first"]}.
+Prefer sections that state a right, a duty, a procedure or a time limit that directly bears on the situation. Always include the constitutional right involved if one is listed. Skip sections that are merely about administration, definitions or unrelated procedure.`;
 
 export const LETTER_SYSTEM = `You draft short, formal letters and petitions for people in Nigeria who cannot afford a lawyer. Write in formal Nigerian English.
 Rules:

@@ -1,4 +1,4 @@
-import { execFile } from "node:child_process";
+import { spawn } from "node:child_process";
 
 /**
  * Minimal provider-agnostic chat client.
@@ -62,10 +62,12 @@ function claudeCli(system: string, user: string, model: string): Promise<string>
   const env = { ...process.env };
   delete env.CLAUDECODE; delete env.CLAUDE_CODE_ENTRYPOINT;
   return new Promise((resolve, reject) => {
-    execFile("claude", ["-p", user, "--system-prompt", system, "--model", model, "--output-format", "text"], { env, maxBuffer: 4e6, timeout: 180000 }, (err, stdout, stderr) => {
-      if (err) return reject(new Error(`claude-cli: ${stderr || err.message}`));
-      resolve(stdout.trim());
-    });
+    const child = spawn("claude", ["-p", user, "--system-prompt", system, "--model", model, "--output-format", "text"], { env, stdio: ["ignore", "pipe", "pipe"] });
+    let out = "", err = "";
+    const timer = setTimeout(() => { child.kill(); reject(new Error("claude-cli: timeout")); }, 180000);
+    child.stdout.on("data", (d) => (out += d));
+    child.stderr.on("data", (d) => (err += d));
+    child.on("close", (code) => { clearTimeout(timer); if (code !== 0) reject(new Error(`claude-cli: ${err || `exit ${code}`}`)); else resolve(out.trim()); });
   });
 }
 

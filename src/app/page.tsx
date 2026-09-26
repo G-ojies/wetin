@@ -42,7 +42,7 @@ const T = {
     help: "Free legal help",
     how: "How Wetin checks itself",
     how1: "Finds the sections",
-    how1b: "Your question is turned into legal search terms and matched against 1,134 sections of six Nigerian statutes.",
+    how1b: "Your question is turned into legal search terms and matched against 1,139 sections of six Nigerian statutes.",
     how2: "Answers only from them",
     how2b: "The model may only cite the sections it was shown. Any citation outside that set is dropped before you see it.",
     how3: "Verifies every quote",
@@ -86,7 +86,7 @@ const T = {
     help: "Free legal help",
     how: "How Wetin dey check itself",
     how1: "E find the sections",
-    how1b: "Your question turn to legal search words and e match against 1,134 sections of six Nigerian laws.",
+    how1b: "Your question turn to legal search words and e match against 1,139 sections of six Nigerian laws.",
     how2: "E answer only from them",
     how2b: "The model fit only cite the sections wey e see. Any citation outside that set, we comot am before you see am.",
     how3: "E verify every quote",
@@ -272,7 +272,7 @@ export default function Home() {
           <div className={`mx-auto ${phase === "idle" ? "max-w-2xl text-center" : "max-w-3xl"}`}>
             {phase === "idle" && (
               <>
-                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-green bg-green-soft rounded-full px-3 py-1 mb-5"><ShieldCheck size={13} /> Six Nigerian statutes · 1,134 sections · every quote verified</p>
+                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-green bg-green-soft rounded-full px-3 py-1 mb-5"><ShieldCheck size={13} /> Six Nigerian statutes · 1,139 sections · every quote verified</p>
                 <h1 className="font-serif text-[2.6rem] leading-[1.05] sm:text-6xl tracking-tight">
                   <span className="italic">Wetin</span> be my right?
                 </h1>

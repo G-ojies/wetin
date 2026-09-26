@@ -8,6 +8,11 @@ export const maxDuration = 120;
 
 export async function POST(req: NextRequest) {
   const { question, answer, sectionIds, letterType } = (await req.json()) as { question: string; answer: string; sectionIds: string[]; letterType: string };
+  if (process.env.WETIN_REPLAY_DIR) {
+    const fs = await import("node:fs/promises");
+    await new Promise((r) => setTimeout(r, 3000));
+    return new Response(await fs.readFile(`${process.env.WETIN_REPLAY_DIR}/letter-en.json`, "utf8"), { headers: { "content-type": "application/json" } });
+  }
   const sections = (sectionIds ?? []).map(getSection).filter(Boolean);
   if (!sections.length) return Response.json({ error: "No cited sections" }, { status: 400 });
   const context = sections.map((s) => `### ${s!.statuteName}, section ${s!.section}${s!.title ? ` (${s!.title})` : ""}\n${s!.text.slice(0, 2500)}`).join("\n\n");

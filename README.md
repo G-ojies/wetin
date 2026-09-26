@@ -11,7 +11,7 @@ Most Nigerians never see a lawyer. Police stops, evictions, unpaid wages and loa
 ## What it does
 
 1. **Understands the question** (English or Pidgin) and turns it into statutory search terms.
-2. **Retrieves** the most relevant sections with BM25 (MiniSearch) from a 1,134-section corpus of six statutes.
+2. **Retrieves** the most relevant sections with BM25 (MiniSearch) from a 1,139-section corpus of six statutes.
 3. **Answers only from those sections**, with inline citations that jump to the section text.
 4. **Verifies** each quoted excerpt against the statute; citations outside the retrieved set are dropped server-side.
 5. **Drafts the document** you actually need next: demand letter to a landlord, petition to the Police Service Commission, complaint to the NDPC, letter to an employer.
@@ -26,7 +26,7 @@ Most Nigerians never see a lawyer. Police stops, evictions, unpaid wages and loa
 | Administration of Criminal Justice Act 2015 | 491 | policinglaw.info PDF |
 | Nigeria Data Protection Act 2023 | 63 | dataguidance.com PDF |
 | Labour Act (Cap. L1, LFN 2004) | 90 | lawsofnigeria.placng.org PDF |
-| Tenancy Law of Lagos State 2011 | 42 | sabilaw.org PDF |
+| Tenancy Law of Lagos State 2011 | 47 | sabilaw.org PDF |
 
 Text is extracted with `pdftotext` and split into sections by `scripts/build-corpus.py`. Some sources are OCR scans, so minor character errors remain; the source PDF is linked from every section card.
 

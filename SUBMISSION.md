@@ -23,7 +23,7 @@ Chatbots do not fix this. Ask a general model about Nigerian tenancy law and it 
 Wetin takes a question in English or Nigerian Pidgin and answers with what the written law actually says.
 
 1. **Understands** the question and rewrites it into statutory search terms (Pidgin "dem wan search my phone" becomes "police search person premises warrant grounds").
-2. **Retrieves** the most relevant sections from a corpus of 1,134 sections across six statutes: the 1999 Constitution, the Police Act 2020, the Administration of Criminal Justice Act 2015, the Nigeria Data Protection Act 2023, the Labour Act, and the Lagos Tenancy Law 2011.
+2. **Retrieves** the most relevant sections from a corpus of 1,139 sections across six statutes: the 1999 Constitution, the Police Act 2020, the Administration of Criminal Justice Act 2015, the Nigeria Data Protection Act 2023, the Labour Act, and the Lagos Tenancy Law 2011.
 3. **Answers only from those sections.** Every claim carries an inline citation chip that jumps to the section text. Citations to anything outside the retrieved set are dropped on the server before the answer reaches the user.
 4. **Verifies every quote.** Each quoted excerpt is string-matched against the real statute text and shown with a "verified in statute text" badge, highlighted inside the full section. A quote that is not there is flagged, not hidden.
 5. **Gives next steps** and **drafts the document** the person actually needs: a demand letter to a landlord, a petition to the Police Service Commission, a complaint to the Nigeria Data Protection Commission, a letter to an employer.
