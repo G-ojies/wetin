@@ -115,12 +115,12 @@ function escapeRe(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Split section text around the quote so it can be highlighted; tolerant to whitespace/punctuation drift. */
+/** Split section text around the quote so it can be highlighted; tolerant to whitespace, hyphen and punctuation drift. */
 function highlight(text: string, quote?: string): (string | { mark: string })[] {
   if (!quote) return [text];
-  const words = quote.trim().split(/\s+/).filter(Boolean);
-  if (words.length < 2) return [text];
-  const pattern = words.map((w) => escapeRe(w.replace(/[^\w()]/g, "")).replace(/\\\(/g, "\\(?").replace(/\\\)/g, "\\)?")).join("[\\s\\S]{0,4}?");
+  const tokens = quote.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  if (tokens.length < 2) return [text];
+  const pattern = tokens.map(escapeRe).join("[^A-Za-z0-9]{0,6}?");
   try {
     const re = new RegExp(pattern, "i");
     const m = re.exec(text);
