@@ -8,6 +8,8 @@ const serif = Instrument_Serif({ variable: "--font-serif", subsets: ["latin"], w
 export const metadata: Metadata = {
   title: "Wetin — know your rights under Nigerian law",
   description: "Ask in English or Pidgin. Get a plain answer grounded in the actual section of Nigerian law, with every quote verified against the statute text.",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
   openGraph: { title: "Wetin be my right?", description: "Plain answers from Nigerian law, with the exact section cited and verified.", type: "website" },
 };
 

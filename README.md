@@ -13,24 +13,27 @@ Most Nigerians never see a lawyer. Police stops, evictions, unpaid wages and loa
 ## What it does
 
 1. **Understands the question** (English or Pidgin) and turns it into statutory search terms.
-2. **Retrieves** the most relevant sections with BM25 (MiniSearch) from a 1,139-section corpus of six statutes.
+2. **Retrieves** the most relevant sections with BM25 (MiniSearch) from a 1,460-section corpus of eight statutes.
 3. **Answers only from those sections**, with inline citations that jump to the section text.
 4. **Verifies** each quoted excerpt against the statute; citations outside the retrieved set are dropped server-side.
 5. **Drafts the document** you actually need next: demand letter to a landlord, petition to the Police Service Commission, complaint to the NDPC, letter to an employer.
-6. Flags **urgent** situations (someone detained now) with the constitutional 24/48-hour rule and links to free legal help.
+6. Ships an **offline rights card** for police stops at `/card`: ten rights with verbatim statute quotes, an emergency contact saved on the device, English and Pidgin, usable with no network.
+7. Flags **urgent** situations (someone detained now) with the constitutional 24/48-hour rule and links to free legal help.
 
 ## Corpus
 
 | Statute | Sections | Source |
 | --- | --- | --- |
 | Constitution of the Federal Republic of Nigeria 1999 | 319 | jonapwd.org PDF |
-| Nigeria Police Act 2020 | 129 | sabilaw.org PDF |
+| Nigeria Police Act 2020 | 128 | sabilaw.org PDF |
 | Administration of Criminal Justice Act 2015 | 491 | policinglaw.info PDF |
 | Nigeria Data Protection Act 2023 | 63 | dataguidance.com PDF |
+| Cybercrimes (Prohibition, Prevention, etc.) Act 2015 | 56 | nfiu.gov.ng PDF |
+| Child's Rights Act 2003 | 266 | placng.org PDF |
 | Labour Act (Cap. L1, LFN 2004) | 90 | lawsofnigeria.placng.org PDF |
 | Tenancy Law of Lagos State 2011 | 47 | sabilaw.org PDF |
 
-Text is extracted with `pdftotext` and split into sections by `scripts/build-corpus.py`. Some sources are OCR scans, so minor character errors remain; the source PDF is linked from every section card.
+Text is extracted with `pdftotext` and split into sections by `scripts/build-corpus.py`. Some sources are OCR scans, so minor character errors remain; the source PDF is linked from every section card. Where a scan lost a section heading, the heading is recovered from the margin note embedded in the text (157 of 1460 sections, flagged `titleDerived` in the corpus). The Cybercrimes Act text is the 2015 version; the Act was amended in 2024.
 
 ## Stack
 
@@ -66,7 +69,7 @@ python3 scripts/build-corpus.py <dir-with-statute-txt> src/data/corpus.json
 
 - A guide, not legal advice. The app says so on every answer.
 - Lagos Tenancy Law covers Lagos State only (and excludes Apapa, Ikeja GRA, Ikoyi, Victoria Island). ACJA covers federal courts and the FCT; most states have similar ACJ laws.
-- Six statutes today. Adding one is a PDF and one line of config.
+- Eight statutes today. Adding one is a PDF and a few lines of config.
 
 ## License
 

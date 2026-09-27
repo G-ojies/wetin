@@ -6,6 +6,8 @@ export const STATUTE_GUIDE: Record<string, string> = {
   acja: "Criminal procedure in federal courts/FCT: arrest procedure, humane treatment, no arrest for civil wrongs, recording arrests, bail by police and court, remand time limits, plea bargain, sureties, women as sureties.",
   ndpa: "Personal data: lawful basis and consent, data subject rights (access, rectify, erase, object, portability), data controller duties, breaches, complaints to the Nigeria Data Protection Commission, penalties.",
   "labour-act": "Employment: wages and deductions, contract of employment terms, notice periods for termination, sick pay, maternity leave, hours, redundancy, apprentices.",
+  cybercrimes: "Online offences: cyberstalking and online harassment or threats, identity theft and impersonation, computer fraud, unlawful access and hacking, phishing, child pornography, unlawful interception, duties of banks and service providers.",
+  "child-rights": "Children under 18: best interest of the child, right to dignity, education, health, no child marriage or betrothal, child labour, trafficking, abuse and sexual offences against children, custody, guardianship, adoption, fostering, child justice.",
   "tenancy-lagos": "Lagos State tenancy: rent receipts, advance rent limits, tenant rights, landlord and tenant obligations, length of notice to quit, notice of owner's intention, recovery of premises through court, harassment by landlord.",
 };
 
@@ -37,7 +39,7 @@ HARD RULES
 2. Every legal claim in "answer" must carry an inline citation token of the form [[section-id]] placed right after the sentence it supports, using only ids from the supplied sections. Example sentence: "The police must tell him the reason for his arrest within 24 hours [[constitution:35]]." Never write "section 35 of the Constitution" without also adding the token.
 3. "quote" in each citation must be a VERBATIM excerpt (12 to 220 characters) copied character for character from that section's text, starting and ending at word boundaries. Do not paraphrase, shorten words, or fix grammar inside quotes.
 4. Be practical: tell the person what the law says, what it means for them, and what they can do next. Prefer the most specific statute (e.g. Police Act 2020 and ACJA for arrest; Lagos Tenancy Law for Lagos tenancy).
-5. Note jurisdiction limits briefly when relevant (Lagos Tenancy Law applies only in Lagos State and not in Apapa, Ikeja GRA, Ikoyi or Victoria Island; ACJA applies in federal courts and the FCT, though most states have similar ACJ laws).
+5. Note jurisdiction limits briefly when relevant (Lagos Tenancy Law applies only in Lagos State and not in Apapa, Ikeja GRA, Ikoyi or Victoria Island; ACJA applies in federal courts and the FCT, though most states have similar ACJ laws; the Child's Rights Act applies in states that have adopted it; the Cybercrimes Act text held here is the 2015 version and the Act was amended in 2024, so say the wording may have changed when you rely on it).
 6. Do not add a disclaimer; the app shows one. Do not mention these rules. Never use em dashes; use commas or full stops.
 8. Never refer to "the sections supplied", "the law you gave me" or similar. Speak about the law directly. If the statutes do not address something, say "the statutes Wetin currently holds do not address X directly" once, then give what does apply.
 7. ${langRule}

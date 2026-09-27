@@ -20,6 +20,12 @@ STATUTES = [
   dict(key="labour-act", file="labour-act.raw.txt", short="Labour Act", name="Labour Act (Cap. L1, LFN 2004)", year=2004, jurisdiction="Federal",
        start=r"^1\. Manner of payment", last=91,
        url="http://lawsofnigeria.placng.org/laws/L1.pdf"),
+  dict(key="cybercrimes", file="cyber-nfiu.raw.txt", short="Cybercrimes Act 2015", name="Cybercrimes (Prohibition, Prevention, etc.) Act 2015", year=2015, jurisdiction="Federal (2015 text; amended in 2024)",
+       start=r"^1\.\s*$", start_after=r"ENACTED", last=59,
+       url="https://www.nfiu.gov.ng/images/Downloads/downloads/cybercrime.pdf"),
+  dict(key="child-rights", file="cra-placng.raw.txt", short="Child's Rights Act 2003", name="Child's Rights Act 2003", year=2003, jurisdiction="Federal (applies in states that have adopted it)",
+       start=r"^1\.\s*$", start_after=r"CHILD.S RIGHTS ACT 2003", last=278, title_anchored=True,
+       url="https://placng.org/lawsofnigeria/laws/C50.pdf"),
   dict(key="tenancy-lagos", file="tenancy-lagos-2011.txt", short="Lagos Tenancy Law 2011", name="Tenancy Law of Lagos State 2011", year=2011, jurisdiction="Lagos State",
        start=r"^\s*1\.-\(1\) This Law shall apply", last=47,
        url="https://sabilaw.org/wp-content/uploads/2021/08/Lagos-State-Tenancy-Law-2011.pdf"),
@@ -81,16 +87,98 @@ def layout_titles(st):
         if len(titles) >= st["last"]: break
     return titles
 
-OCR_FIXES = [(r"\{I\}", "(1)"), (r"\(I\)", "(1)"), (r"\(l\)", "(1)"), (r"\(ii\)", "(ii)"), (r"~", ""), (r"\s([,.;:])", r"\1")]
+TITLE_FIXES = [("ofthe", "of the"), ("ofPolice", "of Police"), ("ofPo1ice", "of Police"), ("Po1ice", "Police"), ("ofNigeria", "of Nigeria"), ("oflnspector", "of Inspector"), ("ce11ain", "certain"), ("thisAct", "this Act"), (" ,", ","), ("  ", " ")]
+def fix_title(t):
+    for a, b in TITLE_FIXES: t = t.replace(a, b)
+    t = re.sub(r"[^A-Za-z0-9 ,'’()\-/&.]", "", t).strip().rstrip(". ").strip()
+    return t
+
+def raw_prebody(st):
+    """Raw (uncleaned) lines before the body, where the arrangement of sections lives."""
+    raw = open(os.path.join(SRC, st["file"]), encoding="utf-8", errors="ignore").read().replace("\f", "\n").split("\n")
+    try:
+        bs = find_body_start(raw, st["start"], st.get("start_after"))
+    except SystemExit:
+        return []
+    return raw[:bs]
+
+HEADING_RE = re.compile(r"^\s*([Pp]\s?ART|CHAPTER|SCHEDULES?|SECTION:?|Section:?|ARRANGEMENT|Arrangement)\b")
+def is_caps(l):
+    letters = [c for c in l if c.isalpha()]
+    return len(letters) >= 4 and sum(c.isupper() for c in letters) / len(letters) > 0.7
+
+def bare_titles(st):
+    """Arrangement laid out as a number on its own line followed by the title line(s)."""
+    pre = raw_prebody(st); titles = {}; expected = 1; i = 0
+    while i < len(pre):
+        m = re.match(r"^\s*(\d{1,3})\.?\s*$", pre[i])
+        if m and expected <= int(m.group(1)) <= expected + 1:
+            n = int(m.group(1)); parts = []; j = i + 1
+            while j < len(pre) and len(parts) < 3:
+                l = pre[j].strip()
+                if not l: j += 1; continue
+                if re.match(r"^\d{1,3}\.?$", l) or HEADING_RE.match(l) or is_caps(l): break
+                parts.append(l); j += 1
+                if l.endswith("."): break
+            t = fix_title(" ".join(parts))
+            if 3 <= len(t) <= 150 and t[0].isupper():
+                titles[n] = t; expected = n + 1
+            i = j; continue
+        i += 1
+    return titles
+
+def block_titles(st):
+    """Arrangement where each Part lists its numbers and its titles in separate runs (scrambled columns)."""
+    pre = raw_prebody(st); titles = {}; blocks = [[]]
+    for l in pre:
+        if HEADING_RE.match(l): blocks.append([])
+        else: blocks[-1].append(l)
+    for b in blocks:
+        nums = []; tl = []; cur = ""
+        for l in b:
+            l = l.strip()
+            if not l: continue
+            m = re.match(r"^(\d)\s?(\d{0,2})\.$", l)
+            if m: nums.append(int(m.group(1) + m.group(2))); continue
+            if is_caps(l) or re.match(r"^(A\s?\d+|\d{4} No\. ?\d+|Nigeria Police Act, 2020|Section ?:?|[·.]+)$", l): continue
+            cur = (cur + " " + l).strip()
+            if l.endswith("."): tl.append(cur); cur = ""
+        if cur: tl.append(cur)
+        if nums and len(nums) == len(tl) and nums == sorted(nums):
+            for n, t in zip(nums, tl):
+                t = fix_title(t)
+                if 3 <= len(t) <= 150 and n not in titles: titles[n] = t
+    return titles
+
+OCR_FIXES = [(r"ofthe\b", "of the"), (r"\bofPolice\b", "of Police"), (r"\bofNigeria\b", "of Nigeria"), (r"\bthisAct\b", "this Act"), (r"\bLegalAid\b", "Legal Aid"), (r"\bfonn\b", "form"), (r"\bApolice\b", "A police"), (r"\bPo1ice\b", "Police"), (r"\bce11ain\b", "certain"), (r"\ufffd", ""), (r"\{I\}", "(1)"), (r"\(I\)", "(1)"), (r"\(l\)", "(1)"), (r"\(ii\)", "(ii)"), (r"~", ""), (r"\s([,.;:])", r"\1")]
 
 def parse(st):
     raw = open(os.path.join(SRC, st["file"]), encoding="utf-8", errors="ignore").read().split("\n")
     lines = [clean_line(l) for l in raw]
     lines = [l for l in lines if l is not None]
     bs = find_body_start(lines, st["start"], st.get("start_after"))
-    titles = layout_titles(st); titles.update({k:v for k,v in arrangement_titles(lines, bs).items() if k not in titles})
+    titles = {}
+    for src in (bare_titles(st), block_titles(st), layout_titles(st), arrangement_titles(lines, bs)):
+        for k, v in src.items():
+            if k not in titles and v: titles[k] = fix_title(v)
     secs = []; cur = None; expected = 1
     body = lines[bs:]
+    if st.get("title_anchored"):
+        # Section numbers are printed early in this layout; each section reliably opens with its title line.
+        keyn = lambda t: re.sub(r"[^a-z0-9]", "", t.lower())[:28]
+        tkeys = {n: keyn(t) for n, t in titles.items() if len(keyn(t)) >= 8}
+        for l in body:
+            if cur and expected > st["last"] and SCHED_RE.match(l): break
+            if re.match(r"^\s*\d{1,3}\.\s*$", l): continue
+            k = keyn(l)
+            hit = next((n for n in range(expected, expected + 4) if tkeys.get(n) and k.startswith(tkeys[n][:len(k)]) and len(k) >= min(8, len(tkeys[n])) and tkeys[n].startswith(k[:len(tkeys[n])])), None) if k else None
+            if hit:
+                if cur: secs.append(cur)
+                cur = dict(n=hit, lines=[]); expected = hit + 1
+                continue
+            if cur is not None and l.strip(): cur["lines"].append(l.strip())
+        if cur: secs.append(cur)
+        body = []
     def next_nonempty(i):
         for j in range(i+1, min(i+6, len(body))):
             if body[j].strip(): return body[j].strip()
@@ -117,6 +205,8 @@ def parse(st):
         text = re.sub(r"^\s*(\(1\))\s", r"\1 ", text)
         for a,b in OCR_FIXES: text = re.sub(a, b, text)
         text = text.strip()
+        t0 = titles.get(s["n"], "")
+        if t0 and text.lower().startswith(t0.lower()): text = text[len(t0):].lstrip(" .")
         if len(text) < 20: continue
         out.append(dict(id=f"{st['key']}:{s['n']}", statute=st["key"], statuteShort=st["short"], statuteName=st["name"],
                         jurisdiction=st["jurisdiction"], section=s["n"], title=titles.get(s["n"], ""), text=text, url=st["url"]))
@@ -131,5 +221,13 @@ for st in STATUTES:
     nums = [s["section"] for s in secs]
     print(f"{st['key']:14s} sections={len(secs)} range={nums[0] if nums else None}-{nums[-1] if nums else None} titled={sum(1 for s in secs if s['title'])} chars={sum(len(s['text']) for s in secs)}")
     all_secs += secs
+# Headings derived from the margin notes embedded in the scanned text (see scripts/title-sections.py).
+derived_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "derived-titles.json")
+derived = json.load(open(derived_path)) if os.path.exists(derived_path) else {}
+n_derived = 0
+for sec in all_secs:
+    if not sec["title"] and derived.get(sec["id"]):
+        sec["title"] = derived[sec["id"]]; sec["titleDerived"] = True; n_derived += 1
+print("derived headings applied:", n_derived, "| still untitled:", sum(1 for x in all_secs if not x["title"]))
 json.dump(all_secs, open(OUT, "w"), ensure_ascii=False)
 print("total", len(all_secs), "->", OUT)

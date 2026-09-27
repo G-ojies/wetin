@@ -18,6 +18,8 @@ const DEFAULT_LETTER: Record<string, string> = {
   ndpa: "Complaint to the Nigeria Data Protection Commission",
   "police-act": "Formal complaint to the Divisional Police Officer",
   acja: "Formal complaint to the Divisional Police Officer",
+  cybercrimes: "Formal complaint to the police about an online offence",
+  "child-rights": "Formal complaint asserting the child's rights",
   constitution: "Formal complaint asserting fundamental rights",
 };
 

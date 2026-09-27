@@ -42,7 +42,7 @@ const T = {
     help: "Free legal help",
     how: "How Wetin checks itself",
     how1: "Finds the sections",
-    how1b: "Your question is turned into legal search terms and matched against 1,139 sections of six Nigerian statutes.",
+    how1b: "Your question is turned into legal search terms and matched against 1,460 sections of eight Nigerian statutes.",
     how2: "Answers only from them",
     how2b: "The model may only cite the sections it was shown. Any citation outside that set is dropped before you see it.",
     how3: "Verifies every quote",
@@ -86,7 +86,7 @@ const T = {
     help: "Free legal help",
     how: "How Wetin dey check itself",
     how1: "E find the sections",
-    how1b: "Your question turn to legal search words and e match against 1,139 sections of six Nigerian laws.",
+    how1b: "Your question turn to legal search words and e match against 1,460 sections of eight Nigerian laws.",
     how2: "E answer only from them",
     how2b: "The model fit only cite the sections wey e see. Any citation outside that set, we comot am before you see am.",
     how3: "E verify every quote",
@@ -158,6 +158,7 @@ export default function Home() {
       setTheme(resolved);
       document.documentElement.dataset.theme = resolved;
     } catch {}
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
   const toggleTheme = () => {
     const n = theme === "dark" ? "light" : "dark";
@@ -272,7 +273,7 @@ export default function Home() {
           <div className={`mx-auto ${phase === "idle" ? "max-w-2xl text-center" : "max-w-3xl"}`}>
             {phase === "idle" && (
               <>
-                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-green bg-green-soft rounded-full px-3 py-1 mb-5"><ShieldCheck size={13} /> Six Nigerian statutes · 1,139 sections · every quote verified</p>
+                <p className="inline-flex items-center gap-1.5 text-xs font-medium text-green bg-green-soft rounded-full px-3 py-1 mb-5"><ShieldCheck size={13} /> Eight Nigerian statutes · 1,460 sections · every quote verified</p>
                 <h1 className="font-serif text-[2.6rem] leading-[1.05] sm:text-6xl tracking-tight">
                   <span className="italic">Wetin</span> be my right?
                 </h1>
@@ -299,6 +300,12 @@ export default function Home() {
                 </button>
               </div>
             </form>
+            {phase === "idle" && (
+              <a href="/card" className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-green/30 bg-green-soft px-4 py-3 text-left hover:border-green/60 transition">
+                <span><span className="block font-semibold text-green">{lang === "en" ? "Police stop card" : "Police stop card"}</span><span className="block text-sm text-ink-2">{lang === "en" ? "Your rights on one page. Works with no data." : "Your rights for one page. E dey work without data."}</span></span>
+                <ShieldCheck className="shrink-0 text-green" size={22} />
+              </a>
+            )}
             {phase === "idle" && (
               <div className="mt-5 flex flex-wrap gap-2 justify-center">
                 {t.examples.map((ex) => (
@@ -434,7 +441,7 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <p className="mt-6 text-xs text-muted">Statutes: Constitution 1999 · Police Act 2020 · Administration of Criminal Justice Act 2015 · Nigeria Data Protection Act 2023 · Labour Act · Lagos Tenancy Law 2011</p>
+              <p className="mt-6 text-xs text-muted">Statutes: Constitution 1999 · Police Act 2020 · Administration of Criminal Justice Act 2015 · Nigeria Data Protection Act 2023 · Cybercrimes Act 2015 · Child's Rights Act 2003 · Labour Act · Lagos Tenancy Law 2011</p>
             </div>
           </section>
         )}

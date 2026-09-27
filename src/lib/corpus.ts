@@ -9,6 +9,7 @@ export type Section = {
   jurisdiction: string;
   section: number;
   title: string;
+  titleDerived?: boolean;
   text: string;
   url: string;
 };
@@ -56,7 +57,7 @@ function chunkSection(s: Section): Chunk[] {
 }
 
 // Definition/citation sections match every query lexically; keep them readable but out of retrieval.
-const NON_RETRIEVABLE = /^(interpretation|citation|short title|definitions?)$/i;
+const NON_RETRIEVABLE = /^(interpretations?|citation|short title|definitions?)$/i;
 const CHUNKS: Chunk[] = SECTIONS.filter((s) => !NON_RETRIEVABLE.test(s.title.trim())).flatMap(chunkSection);
 const CHUNK_BY_ID = new Map(CHUNKS.map((c) => [c.id, c]));
 

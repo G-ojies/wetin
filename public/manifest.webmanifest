@@ -1,0 +1,10 @@
+{
+  "name": "Wetin: know your rights",
+  "short_name": "Wetin",
+  "description": "Your rights under Nigerian law, with an offline card for police stops.",
+  "start_url": "/card",
+  "display": "standalone",
+  "background_color": "#faf6ee",
+  "theme_color": "#0f5c34",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
