@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
         const context = hits
           .map((h) => `### id: ${h.section.id}\n${h.section.statuteName}, section ${h.section.section}${h.section.title ? ` (${h.section.title})` : ""}\n${h.section.text.slice(0, 1600)}`)
           .join("\n\n");
-        const user = `PERSON'S MESSAGE:\n${question}\n\nWHAT THEY ARE ASKING (restated):\n${exp.understood}\n\nSUPPLIED STATUTE SECTIONS:\n${context}`;
+        const langLine = lang === "pcm" ? "ANSWER LANGUAGE: Nigerian Pidgin. The \"answer\" and every item in \"steps\" MUST be written in Nigerian Pidgin (BBC Pidgin style), not standard English. Only the statutory quotes stay in English." : "ANSWER LANGUAGE: plain English.";
+        const user = `${langLine}\n\nPERSON'S MESSAGE:\n${question}\n\nWHAT THEY ARE ASKING (restated):\n${exp.understood}\n\nSUPPLIED STATUTE SECTIONS:\n${context}\n\n${langLine}`;
         let ans: Answer;
         try {
           ans = parseJson<Answer>(await chat({ system: answerSystem(lang), user, tier: "smart", json: true, maxTokens: 1600, onStatus: (t) => send({ type: "status", text: t }) }));
