@@ -60,13 +60,15 @@ export async function chat(opts: { system: string; user: string; tier?: Tier; js
   const chain = modelChain(name, tier);
   let lastErr: Error | null = null;
   let minWait = Infinity;
-  // Pass 1: walk the chain. Pass 2: wait for the shortest stated reset and walk it again.
-  for (let pass = 0; pass < 2; pass++) {
-    if (pass === 1) {
+  let maxWait = 0;
+  // Pass 1: walk the chain. Pass 2: wait for the shortest stated reset. Pass 3: wait for the longest.
+  for (let pass = 0; pass < 3; pass++) {
+    if (pass > 0) {
       if (!isFinite(minWait)) break;
-      const wait = Math.min(30, Math.max(2, minWait + 0.5));
-      opts.onStatus?.(`Busy right now, retrying in ${Math.ceil(wait)}s`);
+      const wait = Math.min(40, Math.max(2, (pass === 1 ? minWait : maxWait) + 0.5));
+      opts.onStatus?.(`Many people are asking right now, retrying in ${Math.ceil(wait)}s`);
       await sleep(wait * 1000);
+      minWait = Infinity; maxWait = 0;
     }
     for (const model of chain) {
       try {
@@ -76,7 +78,8 @@ export async function chat(opts: { system: string; user: string; tier?: Tier; js
         lastErr = err;
         if (/^LLM 429/.test(err.message)) {
           const s = retryAfterSeconds(err.message);
-          if (s !== null) minWait = Math.min(minWait, s);
+          if (s !== null) { minWait = Math.min(minWait, s); maxWait = Math.max(maxWait, s); }
+          else { minWait = Math.min(minWait, 10); maxWait = Math.max(maxWait, 20); }
           continue;
         }
         if (/^LLM (400|404|500|502|503)/.test(err.message)) continue;
