@@ -2,7 +2,7 @@
 
 **Wetin be my right?** Ask in English or Nigerian Pidgin what happened to you. Wetin answers in plain language using *only* the actual sections of Nigerian law, cites each one, and verifies every quoted excerpt against the statute text before you see it.
 
-**Live:** https://wetin.vercel.app
+**Live:** https://wetin.vercel.app · **Demo video:** https://youtu.be/wEiaRuKoCf8
 
 Built for **LexHack 2026** (Access to Justice & Civic Tech).
 

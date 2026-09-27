@@ -8,7 +8,7 @@
 
 **Live demo:** https://wetin.vercel.app
 **Repo:** https://github.com/G-ojies/wetin
-**Video:** (YouTube link)
+**Video:** https://youtu.be/wEiaRuKoCf8
 
 ---
 
