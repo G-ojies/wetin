@@ -12,6 +12,25 @@ type Answer = { answer: string; steps: string[]; citations: Citation[]; confiden
 
 const enc = new TextEncoder();
 
+const DEFAULT_LETTER: Record<string, string> = {
+  "tenancy-lagos": "Letter to landlord asserting tenant's rights",
+  "labour-act": "Letter to employer asserting employee's rights",
+  ndpa: "Complaint to the Nigeria Data Protection Commission",
+  "police-act": "Formal complaint to the Divisional Police Officer",
+  acja: "Formal complaint to the Divisional Police Officer",
+  constitution: "Formal complaint asserting fundamental rights",
+};
+
+/** The model usually names the document; if it does not, pick one from the statute most cited. */
+function letterTypeFor(ans: Answer, citations: Citation[]): string | null {
+  if (ans.letterType && ans.letterType !== "null") return ans.letterType;
+  if (ans.notInCorpus || !citations.length) return null;
+  const counts = new Map<string, number>();
+  for (const c of citations) { const k = c.id.split(":")[0]; if (k !== "constitution") counts.set(k, (counts.get(k) ?? 0) + 1); }
+  const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "constitution";
+  return DEFAULT_LETTER[top] ?? null;
+}
+
 export async function POST(req: NextRequest) {
   const { question, lang = "en" } = (await req.json()) as { question: string; lang?: "en" | "pcm" };
   if (!question || question.trim().length < 3) return new Response("Ask a question", { status: 400 });
@@ -113,7 +132,7 @@ export async function POST(req: NextRequest) {
           citations,
           confidence: ans.confidence ?? "medium",
           notInCorpus: !!ans.notInCorpus,
-          letterType: ans.letterType ?? null,
+          letterType: letterTypeFor(ans, citations),
           grounding: { cited: citations.length, verified: verifiedCount },
           provider: providerInfo(),
         });
