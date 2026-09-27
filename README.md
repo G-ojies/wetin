@@ -2,6 +2,8 @@
 
 **Wetin be my right?** Ask in English or Nigerian Pidgin what happened to you. Wetin answers in plain language using *only* the actual sections of Nigerian law, cites each one, and verifies every quoted excerpt against the statute text before you see it.
 
+**Live:** https://wetin.vercel.app
+
 Built for **LexHack 2026** (Access to Justice & Civic Tech).
 
 ## Why
@@ -34,7 +36,7 @@ Text is extracted with `pdftotext` and split into sections by `scripts/build-cor
 
 - Next.js 16 (App Router), React 19, Tailwind 4, TypeScript
 - MiniSearch (BM25 retrieval, in-process, no vector DB)
-- Any OpenAI-compatible LLM endpoint. Default: Vercel AI Gateway with `anthropic/claude-sonnet-4.5` for answers and `anthropic/claude-haiku-4.5` for query expansion.
+- Any OpenAI-compatible LLM endpoint. The live demo runs on Groq: GPT-OSS 120B for answers, Qwen 27B for query expansion and reranking, with automatic fallback between models.
 - `react-markdown`, `lucide-react`
 
 ## Run it

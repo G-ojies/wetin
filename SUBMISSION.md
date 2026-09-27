@@ -6,7 +6,7 @@
 
 **Track:** Access to Justice & Civic Tech (also fits AI Safety, Ethics & Governance: grounded, verifiable legal AI)
 
-**Live demo:** https://wetin.vercel.app (fill in after deploy)
+**Live demo:** https://wetin.vercel.app
 **Repo:** https://github.com/G-ojies/wetin
 **Video:** (YouTube link)
 
@@ -33,7 +33,7 @@ Wetin takes a question in English or Nigerian Pidgin and answers with what the w
 
 - **Corpus:** downloaded the official gazette PDFs, extracted text with `pdftotext`, and wrote a parser (`scripts/build-corpus.py`) that finds each statute's body, walks the sections monotonically so schedules and tables do not confuse it, pulls titles from the arrangement-of-sections page, and fixes common OCR errors. Output is one JSON file of sections with source links.
 - **Retrieval:** MiniSearch BM25 in-process, chunked by subsection, with definition sections excluded because they match everything. No vector database, so the whole app is one Next.js deploy.
-- **Generation:** two model calls through Vercel AI Gateway. A fast model does query expansion; a stronger model writes the answer as strict JSON with citation tokens and verbatim quotes.
+- **Generation:** three model calls through Groq. A fast model does query expansion and reranking; a stronger model writes the answer as strict JSON with citation tokens and verbatim quotes.
 - **Grounding layer:** server-side checks that filter citations to the retrieved set and verify quotes against the section text (whitespace and punctuation tolerant). The UI shows the verification count on every answer.
 - **Frontend:** Next.js 16, React 19, Tailwind 4. Mobile first, works in light and dark, English and Pidgin, streamed status so the person sees the sections being read before the answer arrives.
 
@@ -65,4 +65,4 @@ Grounding is a systems problem, not a prompting problem. The prompt asks for ver
 
 ## Built with
 
-Next.js, React, TypeScript, Tailwind CSS, MiniSearch, Vercel AI Gateway, Claude (Anthropic), Python, pdftotext, Vercel
+Next.js, React, TypeScript, Tailwind CSS, MiniSearch, Groq (GPT-OSS 120B, Qwen 27B), Python, pdftotext, Vercel
