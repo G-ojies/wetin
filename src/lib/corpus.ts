@@ -113,3 +113,40 @@ export function verifyQuote(sectionId: string, quote: string): boolean {
   if (q.length < 12) return false;
   return normalise(s.text).includes(q);
 }
+
+/**
+ * Snap a paraphrased quote to the closest verbatim span of the section text.
+ * Returns the exact statute wording when at least 60% of the quote's words occur in
+ * a window of the same length, otherwise null. The displayed quote is then always real text.
+ */
+export function snapQuote(sectionId: string, quote: string): string | null {
+  const s = BY_ID.get(sectionId);
+  if (!s || !quote) return null;
+  const qTokens = quote.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  if (qTokens.length < 4) return null;
+  const re = /[A-Za-z0-9]+/g;
+  const toks: { t: string; start: number; end: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(s.text))) toks.push({ t: m[0].toLowerCase(), start: m.index, end: m.index + m[0].length });
+  if (toks.length < qTokens.length) return null;
+  const qSet = new Map<string, number>();
+  for (const t of qTokens) qSet.set(t, (qSet.get(t) ?? 0) + 1);
+  let best = { score: 0, i: 0, w: qTokens.length };
+  for (const w of [qTokens.length, Math.max(4, qTokens.length - 2), qTokens.length + 2]) {
+    for (let i = 0; i + w <= toks.length; i++) {
+      const seen = new Map<string, number>();
+      let hit = 0;
+      for (let j = i; j < i + w; j++) {
+        const t = toks[j].t;
+        const c = seen.get(t) ?? 0;
+        if (c < (qSet.get(t) ?? 0)) hit++;
+        seen.set(t, c + 1);
+      }
+      const score = hit / qTokens.length;
+      if (score > best.score) best = { score, i, w };
+    }
+  }
+  if (best.score < 0.6) return null;
+  const span = s.text.slice(toks[best.i].start, toks[best.i + best.w - 1].end);
+  return span.length > 280 ? span.slice(0, 280) : span;
+}

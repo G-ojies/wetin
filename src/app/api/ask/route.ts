@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { searchSections, verifyQuote, getSection, STATUTES } from "@/lib/corpus";
+import { searchSections, verifyQuote, snapQuote, getSection, STATUTES } from "@/lib/corpus";
 import { chat, parseJson, providerInfo } from "@/lib/llm";
 import { EXPAND_SYSTEM, RERANK_SYSTEM, answerSystem } from "@/lib/prompts";
 
@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 type Expansion = { understood: string; queries: string[]; statutes: string[]; urgent?: boolean };
-type Citation = { id: string; why: string; quote: string; verified?: boolean };
+type Citation = { id: string; why: string; quote: string; verified?: boolean; snapped?: boolean };
 type Answer = { answer: string; steps: string[]; citations: Citation[]; confidence: "high" | "medium" | "low"; notInCorpus: boolean; letterType: string | null };
 
 const enc = new TextEncoder();
@@ -38,19 +38,20 @@ export async function POST(req: NextRequest) {
         send({ type: "status", text: "Understanding your question" });
         let exp: Expansion;
         try {
-          exp = parseJson<Expansion>(await chat({ system: EXPAND_SYSTEM, user: question, tier: "fast", json: true, maxTokens: 400 }));
+          exp = parseJson<Expansion>(await chat({ system: EXPAND_SYSTEM, user: question, tier: "fast", json: true, maxTokens: 500 }));
         } catch {
           exp = { understood: question, queries: [question], statutes: [] };
         }
         const validKeys = new Set(STATUTES.map((s) => s.key));
-        const statutes = Array.from(new Set([...(exp.statutes ?? []).filter((k) => validKeys.has(k)), "constitution"]));
+        const chosen = (exp.statutes ?? []).filter((k) => validKeys.has(k));
+        const statutes = chosen.length ? Array.from(new Set([...chosen, "constitution"])) : [];
         send({ type: "understood", text: exp.understood, queries: exp.queries, urgent: !!exp.urgent });
 
         // Retrieval: statute-restricted first, then widen so nothing important is missed.
         const queries = [question, ...(exp.queries ?? [])];
-        let hits = searchSections(queries, { statutes, limit: 18 });
+        let hits = statutes.length ? searchSections(queries, { statutes, limit: 14 }) : [];
         const extra = searchSections(queries, { limit: 30 }).filter((h) => !hits.some((x) => x.section.id === h.section.id));
-        hits = [...hits, ...extra].slice(0, 26);
+        hits = [...hits, ...extra].slice(0, 24);
         // Rerank the lexical candidates with the fast model; fall back to BM25 order.
         send({ type: "status", text: `Choosing the most relevant of ${hits.length} sections` });
         try {
@@ -58,24 +59,24 @@ export async function POST(req: NextRequest) {
           const rr = parseJson<{ ids: string[] }>(await chat({ system: RERANK_SYSTEM, user: `QUESTION: ${question}\nRESTATED: ${exp.understood}\n\nCANDIDATES:\n${list}`, tier: "fast", json: true, maxTokens: 300 }));
           const byId = new Map(hits.map((h) => [h.section.id, h]));
           const picked = (rr.ids ?? []).map((id) => byId.get(id)).filter((h): h is NonNullable<typeof h> => !!h);
-          if (picked.length >= 4) hits = [...picked, ...hits.filter((h) => !picked.includes(h))].slice(0, Math.max(8, Math.min(picked.length, 10)));
-          else hits = hits.slice(0, 10);
+          if (picked.length >= 4) hits = [...picked, ...hits.filter((h) => !picked.includes(h))].slice(0, Math.max(7, Math.min(picked.length, 8)));
+          else hits = hits.slice(0, 8);
         } catch {
-          hits = hits.slice(0, 10);
+          hits = hits.slice(0, 8);
         }
         send({ type: "sections", sections: hits.map((h) => h.section) });
         send({ type: "status", text: `Reading ${hits.length} sections of the law` });
 
         const context = hits
-          .map((h) => `### id: ${h.section.id}\n${h.section.statuteName}, section ${h.section.section}${h.section.title ? ` (${h.section.title})` : ""}\n${h.section.text.slice(0, 3200)}`)
+          .map((h) => `### id: ${h.section.id}\n${h.section.statuteName}, section ${h.section.section}${h.section.title ? ` (${h.section.title})` : ""}\n${h.section.text.slice(0, 1600)}`)
           .join("\n\n");
         const user = `PERSON'S MESSAGE:\n${question}\n\nWHAT THEY ARE ASKING (restated):\n${exp.understood}\n\nSUPPLIED STATUTE SECTIONS:\n${context}`;
         let ans: Answer;
         try {
-          ans = parseJson<Answer>(await chat({ system: answerSystem(lang), user, tier: "smart", json: true, maxTokens: 2200 }));
+          ans = parseJson<Answer>(await chat({ system: answerSystem(lang), user, tier: "smart", json: true, maxTokens: 1600, onStatus: (t) => send({ type: "status", text: t }) }));
         } catch {
           send({ type: "status", text: "Double-checking the answer" });
-          ans = parseJson<Answer>(await chat({ system: answerSystem(lang), user: user + "\n\nReturn ONLY the JSON object, nothing else.", tier: "smart", json: true, maxTokens: 2200 }));
+          ans = parseJson<Answer>(await chat({ system: answerSystem(lang), user: user + "\n\nReturn ONLY the JSON object, nothing else.", tier: "smart", json: true, maxTokens: 1600, onStatus: (t) => send({ type: "status", text: t }) }));
         }
 
         // Grounding checks: drop citations outside the retrieved set, verify quotes against statute text.
@@ -83,11 +84,25 @@ export async function POST(req: NextRequest) {
         const seen = new Set<string>();
         const citations: Citation[] = (ans.citations ?? [])
           .filter((c) => c && allowed.has(c.id))
-          .map((c) => ({ ...c, verified: verifyQuote(c.id, c.quote) }))
+          .map((c) => {
+            if (verifyQuote(c.id, c.quote)) return { ...c, verified: true };
+            const snapped = snapQuote(c.id, c.quote);
+            return snapped ? { ...c, quote: snapped, verified: true, snapped: true } : { ...c, verified: false };
+          })
           .sort((a, b) => Number(b.verified) - Number(a.verified))
           .filter((c) => (seen.has(c.id) ? false : (seen.add(c.id), true)));
         // Strip inline tokens that point outside the retrieved set.
-        const answerText = (ans.answer ?? "").replace(/\[\[([^\]]+)\]\]/g, (m, id) => (allowed.has(id) && getSection(id) ? m : ""));
+        let answerText = (ans.answer ?? "").replace(/\[\[([^\]]+)\]\]/g, (m, id) => (allowed.has(id) && getSection(id) ? m : ""));
+        if (!/\[\[[^\]]+\]\]/.test(answerText)) {
+          const byNumber = new Map<number, string[]>();
+          for (const h of hits) byNumber.set(h.section.section, [...(byNumber.get(h.section.section) ?? []), h.section.id]);
+          answerText = answerText.replace(/\b[Ss]ections?\s+(\d{1,3})(?:\s*\(\d+\))?(\s+of\s+the\s+[A-Z][A-Za-z ]{3,40}?(?:Act|Law|Constitution)(?:\s+\d{4})?)?/g, (m, num, of) => {
+            const ids = byNumber.get(Number(num)) ?? [];
+            let id = ids.length === 1 ? ids[0] : undefined;
+            if (!id && of) id = ids.find((x) => of.toLowerCase().includes(getSection(x)!.statuteShort.toLowerCase().split(" ")[0]));
+            return id ? `${m} [[${id}]]` : m;
+          });
+        }
         const verifiedCount = citations.filter((c) => c.verified).length;
 
         send({
