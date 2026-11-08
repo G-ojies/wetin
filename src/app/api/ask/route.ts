@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
 import { searchSections, verifyQuote, snapQuote, getSection, STATUTES } from "@/lib/corpus";
-import { chat, parseJson, providerInfo } from "@/lib/llm";
+import { chat, parseJson, providerInfo, GatewayRefusal, type CallMeta } from "@/lib/llm";
+import { visitorId, withVisitorCookie } from "@/lib/visitor";
+import { screenQuestion } from "@/lib/guard";
+import { findHelpOnline } from "@/lib/websearch";
 import { EXPAND_SYSTEM, RERANK_SYSTEM, answerSystem } from "@/lib/prompts";
 
 export const runtime = "nodejs";
@@ -36,6 +39,7 @@ function letterTypeFor(ans: Answer, citations: Citation[]): string | null {
 export async function POST(req: NextRequest) {
   const { question, lang = "en" } = (await req.json()) as { question: string; lang?: "en" | "pcm" };
   if (!question || question.trim().length < 3) return new Response("Ask a question", { status: 400 });
+  const visitor = visitorId(req);
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -55,11 +59,19 @@ export async function POST(req: NextRequest) {
         } finally { controller.close(); }
         return;
       }
+      // Which model served each role, shown under the answer.
+      const served: Record<string, CallMeta> = { screen: {}, understand: {}, rerank: {}, answer: {} };
       try {
+        // Role 1, the screen: a small open-weight safety model reads the message before anything else does.
+        const screen = await screenQuestion(question, { endUser: visitor.id, meta: served.screen });
+        if (screen.blocked) {
+          send({ type: "error", message: lang === "pcm" ? "Wetin no fit answer dis one. Abeg ask about your rights for Nigeria." : "Wetin can't help with that request. Ask about your rights under Nigerian law." });
+          return;
+        }
         send({ type: "status", text: "Understanding your question" });
         let exp: Expansion;
         try {
-          exp = parseJson<Expansion>(await chat({ system: EXPAND_SYSTEM, user: question, tier: "fast", json: true, maxTokens: 500 }));
+          exp = parseJson<Expansion>(await chat({ system: EXPAND_SYSTEM, user: question, tier: "fast", json: true, maxTokens: 500, endUser: visitor.id, meta: served.understand }));
         } catch {
           exp = { understood: question, queries: [question], statutes: [] };
         }
@@ -77,7 +89,7 @@ export async function POST(req: NextRequest) {
         send({ type: "status", text: `Choosing the most relevant of ${hits.length} sections` });
         try {
           const list = hits.map((h, i) => `${i + 1}. id=${h.section.id} | ${h.section.statuteShort} s.${h.section.section}${h.section.title ? ` (${h.section.title})` : ""} | ${h.section.text.slice(0, 220).replace(/\s+/g, " ")}`).join("\n");
-          const rr = parseJson<{ ids: string[] }>(await chat({ system: RERANK_SYSTEM, user: `QUESTION: ${question}\nRESTATED: ${exp.understood}\n\nCANDIDATES:\n${list}`, tier: "fast", json: true, maxTokens: 300 }));
+          const rr = parseJson<{ ids: string[] }>(await chat({ system: RERANK_SYSTEM, user: `QUESTION: ${question}\nRESTATED: ${exp.understood}\n\nCANDIDATES:\n${list}`, tier: "fast", json: true, maxTokens: 300, endUser: visitor.id, meta: served.rerank }));
           const byId = new Map(hits.map((h) => [h.section.id, h]));
           const picked = (rr.ids ?? []).map((id) => byId.get(id)).filter((h): h is NonNullable<typeof h> => !!h);
           if (picked.length >= 4) hits = [...picked, ...hits.filter((h) => !picked.includes(h))].slice(0, Math.max(7, Math.min(picked.length, 8)));
@@ -95,10 +107,11 @@ export async function POST(req: NextRequest) {
         const user = `${langLine}\n\nPERSON'S MESSAGE:\n${question}\n\nWHAT THEY ARE ASKING (restated):\n${exp.understood}\n\nSUPPLIED STATUTE SECTIONS:\n${context}\n\n${langLine}`;
         let ans: Answer;
         try {
-          ans = parseJson<Answer>(await chat({ system: answerSystem(lang), user, tier: "smart", json: true, maxTokens: 1600, onStatus: (t) => send({ type: "status", text: t }) }));
-        } catch {
+          ans = parseJson<Answer>(await chat({ system: answerSystem(lang), user, tier: "smart", json: true, maxTokens: 1600, endUser: visitor.id, meta: served.answer, onStatus: (t) => send({ type: "status", text: t }) }));
+        } catch (e) {
+          if (e instanceof GatewayRefusal) throw e;
           send({ type: "status", text: "Double-checking the answer" });
-          ans = parseJson<Answer>(await chat({ system: answerSystem(lang), user: user + "\n\nReturn ONLY the JSON object, nothing else.", tier: "smart", json: true, maxTokens: 1600, onStatus: (t) => send({ type: "status", text: t }) }));
+          ans = parseJson<Answer>(await chat({ system: answerSystem(lang), user: user + "\n\nReturn ONLY the JSON object, nothing else.", tier: "smart", json: true, maxTokens: 1600, endUser: visitor.id, meta: served.answer, onStatus: (t) => send({ type: "status", text: t }) }));
         }
 
         // Grounding checks: drop citations outside the retrieved set, verify quotes against statute text.
@@ -127,6 +140,14 @@ export async function POST(req: NextRequest) {
         }
         const verifiedCount = citations.filter((c) => c.verified).length;
 
+        // Outside the eight statutes, point to real help instead of guessing: a web search through the gateway,
+        // kept to official and legal-aid sources, labelled as not checked against statute text.
+        let help: Awaited<ReturnType<typeof findHelpOnline>> = null;
+        if (ans.notInCorpus || verifiedCount === 0) {
+          send({ type: "status", text: "Not in Wetin's law books. Looking for official help online" });
+          help = await findHelpOnline(exp.understood || question, { endUser: visitor.id, meta: (served.search = {}) });
+        }
+
         send({
           type: "answer",
           answer: answerText,
@@ -137,13 +158,19 @@ export async function POST(req: NextRequest) {
           letterType: letterTypeFor(ans, citations),
           grounding: { cited: citations.length, verified: verifiedCount },
           provider: providerInfo(),
+          served,
+          help,
         });
       } catch (e) {
-        send({ type: "error", message: e instanceof Error ? e.message : String(e) });
+        if (e instanceof GatewayRefusal && e.kind === "budget") {
+          send({ type: "error", message: lang === "pcm" ? "Your free questions for today don finish. Try again tomorrow, or open the offline rights card." : "You have used today's free questions. Try again tomorrow, or open the offline rights card." });
+        } else if (e instanceof GatewayRefusal) {
+          send({ type: "error", message: "Wetin can't help with that request. Ask about your rights under Nigerian law." });
+        } else send({ type: "error", message: e instanceof Error ? e.message : String(e) });
       } finally {
         controller.close();
       }
     },
   });
-  return new Response(stream, { headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store" } });
+  return withVisitorCookie(new Response(stream, { headers: { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store" } }), visitor);
 }

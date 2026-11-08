@@ -35,6 +35,27 @@ Most Nigerians never see a lawyer. Police stops, evictions, unpaid wages and loa
 
 Text is extracted with `pdftotext` and split into sections by `scripts/build-corpus.py`. Some sources are OCR scans, so minor character errors remain; the source PDF is linked from every section card. Where a scan lost a section heading, the heading is recovered from the margin note embedded in the text (157 of 1460 sections, flagged `titleDerived` in the corpus). The Cybercrimes Act text is the 2015 version; the Act was amended in 2024.
 
+## Wetin on Otari
+
+On the `otari-hackathon` branch every model call goes through [Otari](https://otari.ai), Mozilla AI's open-source LLM gateway, and every model is open-weight. One question passes through four roles, each on its own model:
+
+| Role | What it does | Otari model or policy |
+| --- | --- | --- |
+| Screen | Reads the question first and refuses only attempts to hijack the assistant (Jailbreak). People describe arrests and threats here, so nothing else is blocked | `alibaba/qwen3guard-gen-8b` |
+| Understand and rank | Restates the problem, writes search queries, reranks the statute sections | policy `wetin-fast` (Qwen3 30B A3B, Gemma 3 27B on failure) |
+| Answer | Writes the grounded answer from the supplied sections only | policy `wetin-answer` (Qwen3 235B A22B, DeepSeek V4 Flash on failure) |
+| Draft | Writes the complaint or letter | policy `wetin-letter` (Llama 3.3 70B, Qwen3 235B on failure) |
+
+What Otari does for it:
+
+- **Routing and fallbacks.** The app asks for a policy name; Otari picks the model and fails over inside the gateway. The same models are listed in `src/lib/llm.ts` as a second line in case a policy is missing.
+- **Per-visitor budgets.** Wetin has no accounts. Each visitor gets an anonymous cookie id that is sent as the Otari end user, so each one spends from a small daily budget and one person cannot use up everyone's free questions. When it runs out the app says so and points to the offline rights card.
+- **A spending ceiling** on the workspace, so the free demo can never run up a bill.
+- **Web search** (`otari_web_search`) only when a question falls outside the eight statutes: it looks for official help (agencies, legal aid) and shows it apart from the answer, labelled as not checked against statute text. Wetin never cites the web as law.
+- **Guardrails** through `OTARI_GUARDRAILS` when the deployment offers guardrail profiles.
+
+Set `OTARI_API_KEY` and it becomes the default provider. Under the answer, the page lists which model served each role.
+
 ## Stack
 
 - Next.js 16 (App Router), React 19, Tailwind 4, TypeScript
@@ -54,7 +75,8 @@ Environment (pick one provider):
 
 | Variable | Notes |
 | --- | --- |
-| `AI_GATEWAY_API_KEY` | Vercel AI Gateway (default provider) |
+| `OTARI_API_KEY` | Otari gateway (default when set). Optional `OTARI_GUARDRAILS`, `OTARI_WEB_SEARCH=0` |
+| `AI_GATEWAY_API_KEY` | Vercel AI Gateway |
 | `GROQ_API_KEY` / `GEMINI_API_KEY` / `OPENROUTER_API_KEY` / `ANTHROPIC_API_KEY` | Auto-detected presets |
 | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`, `LLM_FAST_MODEL` | Override any OpenAI-compatible endpoint |
 | `LLM_PROVIDER=claude-cli` | Dev only: uses the local `claude -p` CLI, no key |

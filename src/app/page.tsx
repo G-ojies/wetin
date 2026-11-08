@@ -6,7 +6,7 @@ import { ArrowUp, BookOpenText, Check, ChevronDown, Copy, FileText, Languages, M
 
 type Section = { id: string; statute: string; statuteShort: string; statuteName: string; jurisdiction: string; section: number; title: string; text: string; url: string };
 type Citation = { id: string; why: string; quote: string; verified?: boolean };
-type Answer = { answer: string; steps: string[]; citations: Citation[]; confidence: "high" | "medium" | "low"; notInCorpus: boolean; letterType: string | null; grounding: { cited: number; verified: number }; provider?: { provider: string; smart: string } };
+type Answer = { answer: string; steps: string[]; citations: Citation[]; confidence: "high" | "medium" | "low"; notInCorpus: boolean; letterType: string | null; grounding: { cited: number; verified: number }; provider?: { provider: string; smart: string }; served?: Record<string, { model?: string; requested?: string }>; help?: { links: { title: string; url: string; why: string }[]; source: string } | null };
 type Lang = "en" | "pcm";
 
 const T = {
@@ -142,7 +142,7 @@ export default function Home() {
   const [ans, setAns] = useState<Answer | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<Set<string>>(new Set());
-  const [letter, setLetter] = useState<{ loading: boolean; text: string; error?: string }>({ loading: false, text: "" });
+  const [letter, setLetter] = useState<{ loading: boolean; text: string; error?: string; model?: string }>({ loading: false, text: "" });
   const [copied, setCopied] = useState(false);
   const askedQ = useRef("");
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -232,7 +232,7 @@ export default function Home() {
       const res = await fetch("/api/letter", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: askedQ.current, answer: ans.answer, sectionIds: ans.citations.map((c) => c.id), letterType: ans.letterType }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "failed");
-      setLetter({ loading: false, text: data.letter });
+      setLetter({ loading: false, text: data.letter, model: data.served?.model });
     } catch (e) {
       setLetter({ loading: false, text: "", error: e instanceof Error ? e.message : String(e) });
     }
@@ -399,7 +399,27 @@ export default function Home() {
                         )}
                       </div>
                     )}
+                    {ans.help && ans.help.links.length > 0 && (
+                      <div className="mt-6 border-t border-line pt-5">
+                        <h3 className="text-[11px] uppercase tracking-wider text-muted font-semibold">{lang === "en" ? "Where to get help" : "Where you fit get help"}</h3>
+                        <ul className="mt-2 space-y-2">
+                          {ans.help.links.map((l) => (
+                            <li key={l.url} className="text-[15px]"><a href={l.url} target="_blank" rel="noreferrer" className="text-green font-medium hover:underline">{l.title}</a><span className="text-ink-2"> : {l.why}</span></li>
+                          ))}
+                        </ul>
+                        <p className="mt-2 text-xs text-muted">{ans.help.source}</p>
+                      </div>
+                    )}
                     <p className="mt-6 text-xs text-muted leading-relaxed">{t.disclaimer}</p>
+                    {ans.served && ans.provider?.provider === "otari" && (
+                      <p className="mt-2 text-[11px] text-muted leading-relaxed" data-testid="served">
+                        Open-weight models via Otari: {[["screen", "screened"], ["understand", "understood"], ["rerank", "ranked"], ["answer", "answered"], ["search", "searched"]]
+                          .filter(([k]) => ans.served?.[k]?.model)
+                          .map(([k, verb]) => `${verb} by ${ans.served![k].model}`)
+                          .concat(letter.model ? [`letter by ${letter.model}`] : [])
+                          .join(", ")}
+                      </p>
+                    )}
                   </article>
                 )}
                 {phase === "done" && (
