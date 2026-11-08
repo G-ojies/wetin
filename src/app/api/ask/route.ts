@@ -164,6 +164,8 @@ export async function POST(req: NextRequest) {
       } catch (e) {
         if (e instanceof GatewayRefusal && e.kind === "budget") {
           send({ type: "error", message: lang === "pcm" ? "Your free questions for today don finish. Try again tomorrow, or open the offline rights card." : "You have used today's free questions. Try again tomorrow, or open the offline rights card." });
+        } else if (e instanceof GatewayRefusal && e.kind === "funds") {
+          send({ type: "error", message: lang === "pcm" ? "Wetin AI budget don finish for now. Open the offline rights card while we top am up." : "Wetin's AI budget has run out for now. Open the offline rights card while it is topped up." });
         } else if (e instanceof GatewayRefusal) {
           send({ type: "error", message: "Wetin can't help with that request. Ask about your rights under Nigerian law." });
         } else send({ type: "error", message: e instanceof Error ? e.message : String(e) });

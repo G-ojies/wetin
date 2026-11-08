@@ -65,7 +65,7 @@ function modelChain(name: string, tier: Tier): string[] {
 
 /** A refusal that retrying another model will not fix: a guardrail block, or this visitor's budget is spent. */
 export class GatewayRefusal extends Error {
-  constructor(public kind: "guardrail" | "budget", message: string) { super(message); }
+  constructor(public kind: "guardrail" | "budget" | "funds", message: string) { super(message); }
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -182,7 +182,8 @@ async function callOnce(baseUrl: string, key: string, name: string, model: strin
     const text = (await res.text()).slice(0, 400);
     if (name === "otari") {
       if (/guardrail_violation/.test(text)) throw new GatewayRefusal("guardrail", text);
-      if (res.status === 402 || /budget|insufficient_funds|spend.?limit|ceiling/i.test(text)) throw new GatewayRefusal("budget", text);
+      if (/insufficient_funds/.test(text)) throw new GatewayRefusal("funds", text);
+      if (res.status === 402 || /budget|spend.?limit|ceiling/i.test(text)) throw new GatewayRefusal("budget", text);
     }
     throw new Error(`LLM ${res.status}: ${text}`);
   }
