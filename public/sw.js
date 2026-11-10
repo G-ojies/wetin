@@ -1,6 +1,6 @@
 // Wetin service worker: keeps the rights card and the app shell usable with no network.
-const CACHE = "wetin-v1";
-const PRECACHE = ["/card", "/", "/manifest.webmanifest", "/icon.svg"];
+const CACHE = "wetin-v2";
+const PRECACHE = ["/card", "/", "/manifest.webmanifest", "/icon.svg", "/favicon.ico"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
