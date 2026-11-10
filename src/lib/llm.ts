@@ -130,7 +130,7 @@ export async function chat(opts: ChatOpts): Promise<string> {
           continue;
         }
         if (err instanceof GatewayRefusal) throw err;
-        if (/^LLM (400|404|424|500|502|503)/.test(err.message)) continue;
+        if (/^LLM (400|404|424|500|502|503|504)/.test(err.message)) continue;
         throw err;
       }
     }
