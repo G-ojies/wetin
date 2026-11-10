@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { LogoMark } from "@/lib/logo";
 import { ArrowUp, BookOpenText, Check, ChevronDown, Copy, FileText, Languages, Moon, ShieldCheck, ShieldAlert, Sun, Sparkles, ExternalLink, AlertTriangle, LifeBuoy } from "lucide-react";
 
 type Section = { id: string; statute: string; statuteShort: string; statuteName: string; jurisdiction: string; section: number; title: string; text: string; url: string };
@@ -248,7 +249,8 @@ export default function Home() {
     <div className="flex-1 flex flex-col">
       <header className="sticky top-0 z-20 backdrop-blur bg-bg/80 border-b border-line">
         <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between gap-3">
-          <a href="/" className="flex items-baseline gap-2">
+          <a href="/" className="flex items-center gap-2">
+            <LogoMark size={28} />
             <span className="font-serif text-2xl leading-none tracking-tight">Wetin</span>
             <span className="hidden sm:inline text-xs text-muted">know your right</span>
           </a>
@@ -478,7 +480,7 @@ export default function Home() {
             </ul>
           </div>
           <div className="text-sm text-muted leading-relaxed sm:text-right">
-            <p className="font-serif text-xl text-ink">Wetin</p>
+            <p className="font-serif text-xl text-ink inline-flex items-center gap-2 sm:justify-end"><LogoMark size={22} /> Wetin</p>
             <p className="mt-2">Built for LexHack 2026 · Access to Justice &amp; Civic Tech.</p>
             <p>Open source. Not legal advice.</p>
           </div>

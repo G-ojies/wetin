@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Check, Download, Phone, Printer, ShieldCheck, WifiOff } from "lucide-react";
 import { CARD_DO, CARD_ITEMS } from "@/data/rights-card";
+import { LogoMark } from "@/lib/logo";
 
 type Lang = "en" | "pcm";
 
@@ -85,7 +86,7 @@ export default function CardPage() {
     <div className="flex-1 flex flex-col">
       <header className="sticky top-0 z-20 backdrop-blur bg-bg/80 border-b border-line print:hidden">
         <div className="mx-auto max-w-3xl px-4 h-14 flex items-center justify-between gap-3">
-          <a href="/" className="inline-flex items-center gap-1.5 text-sm text-ink-2 hover:text-ink"><ArrowLeft size={15} /> {t.back}</a>
+          <a href="/" className="inline-flex items-center gap-2 text-sm text-ink-2 hover:text-ink"><ArrowLeft size={15} /> <LogoMark size={22} /> {t.back}</a>
           <div role="group" aria-label="Language" className="flex rounded-full border border-line bg-card p-0.5 text-xs font-medium">
             {(["en", "pcm"] as Lang[]).map((l) => (
               <button key={l} onClick={() => switchLang(l)} aria-pressed={lang === l} className={`px-3 py-1 rounded-full transition ${lang === l ? "bg-green text-white" : "text-ink-2 hover:text-ink"}`}>
