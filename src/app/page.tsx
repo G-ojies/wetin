@@ -461,7 +461,7 @@ export default function Home() {
           </div>
           <div className="text-sm text-muted leading-relaxed sm:text-right">
             <p className="font-serif text-xl text-ink inline-flex items-center gap-2 sm:justify-end"><LogoMark size={22} /> Wetin</p>
-            <p className="mt-2">Built for LexHack 2026 · Access to Justice &amp; Civic Tech.</p>
+            <p className="mt-2">Free to use · Access to Justice &amp; Civic Tech.</p>
             <p>Open source. Not legal advice.</p>
           </div>
         </div>
